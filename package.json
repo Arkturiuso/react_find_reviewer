@@ -1,0 +1,36 @@
+{
+  "name": "react_find_reviewer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "postinstall": "husky install .husky",
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "lint:all": "eslint src --fix",
+    "preview": "vite preview",
+    "deploy": "gh-pages -d dist"
+  },
+  "dependencies": {
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.4",
+    "@trivago/prettier-plugin-sort-imports": "6.0.2",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.1",
+    "eslint": "9.39.4",
+    "eslint-plugin-react-hooks": "7.0.1",
+    "eslint-plugin-react-refresh": "0.5.2",
+    "gh-pages": "6.3.0",
+    "globals": "17.4.0",
+    "husky": "9.1.7",
+    "lint-staged": "16.4.0",
+    "prettier": "3.8.1",
+    "vite": "8.0.1"
+  },
+  "packageManager": "yarn@4.10.3"
+}
