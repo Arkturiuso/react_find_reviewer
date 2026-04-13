@@ -83,7 +83,9 @@ const Search = ({ currentLogin, currentRepo, blacklist, excludeBots }) => {
         });
 
         if (!response.ok) {
-            throw handleApiResponse(response);
+            const error = handleApiResponse(response);
+            console.error(error.message);
+            return;
         }
 
         const userData = await response.json();
@@ -135,7 +137,13 @@ const Search = ({ currentLogin, currentRepo, blacklist, excludeBots }) => {
             });
 
             if (!response.ok) {
-                throw handleApiResponse(response);
+                if (response.status === 404) {
+                    setError(`Репозиторий не найден`);
+                } else {
+                    console.error(`API Error: ${response.status}`);
+                }
+                finishLoading();
+                return;
             }
 
             const reviewersData = await response.json();
@@ -154,7 +162,6 @@ const Search = ({ currentLogin, currentRepo, blacklist, excludeBots }) => {
             }
         } catch (error) {
             console.log(error);
-            setError(error.message || 'Произошла ошибка при загрузке');
             finishLoading();
         }
     };

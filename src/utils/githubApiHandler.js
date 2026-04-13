@@ -7,6 +7,11 @@ const handleApiResponse = (response) => {
             throw new Error(`Превышен лимит запросов к Api\n
                 Лимит: ${response.headers.get('x-ratelimit-limit')}`);
 
+        case 404:
+            throw new Error(
+                'Репозиторий не найден. Проверьте название и формат'
+            );
+
         case 429:
             throw new Error(
                 'Превышен лимит запросов на сервер. Попробуйте позже'
