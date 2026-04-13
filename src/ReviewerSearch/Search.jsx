@@ -106,13 +106,13 @@ const Search = ({ currentLogin, currentRepo, blacklist, excludeBots }) => {
     const findReviewers = async () => {
         setError('');
 
-        if (!currentRepo || currentRepo.trim() === '') {
-            setError('Заполните поле "Репозиторий" в настройках');
+        if (!currentLogin || currentLogin.trim() === '') {
+            setError('Заполните поле "Логин" в настройках');
             return;
         }
 
-        if (!currentLogin || currentLogin.trim() === '') {
-            setError('Заполните поле "Логин" в настройках');
+        if (!currentRepo || currentRepo.trim() === '') {
+            setError('Заполните поле "Репозиторий" в настройках');
             return;
         }
 
