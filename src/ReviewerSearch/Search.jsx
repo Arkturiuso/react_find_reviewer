@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import handleApiResponse from '../utils/githubApiHandler';
 import styles from './SearchStyles.module.less';
@@ -21,6 +21,21 @@ const Search = ({ currentLogin, currentRepo, blacklist, excludeBots }) => {
     const [rollingCandidate, setRollingCandidate] = useState(null);
     const [selectedReviewer, setSelectedReviewer] = useState(null);
 
+    const rollingTimeoutRef = useRef(null);
+    const abortControllerRef = useRef(null);
+
+    useEffect(() => {
+        return () => {
+            if (rollingTimeoutRef.current) {
+                clearTimeout(rollingTimeoutRef.current);
+            }
+
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, []);
+
     const filterReviewers = (reviewers, excludeBots) => {
         if (!reviewers || reviewers.length === 0) {
             return [];
@@ -39,10 +54,21 @@ const Search = ({ currentLogin, currentRepo, blacklist, excludeBots }) => {
         return filtered;
     };
 
+    const stopRollingAnimation = () => {
+        if (rollingTimeoutRef.current) {
+            clearTimeout(rollingTimeoutRef.current);
+            rollingTimeoutRef.current = null;
+        }
+        setIsRolling(false);
+        setRollingCandidate(null);
+    };
+
     const startRollingAnimation = (candidates) => {
         if (!candidates || candidates.length === 0) {
             return;
         }
+
+        stopRollingAnimation();
 
         setIsRolling(true);
         setSelectedReviewer(null);
@@ -59,37 +85,17 @@ const Search = ({ currentLogin, currentRepo, blacklist, excludeBots }) => {
             delay += 15;
 
             if (delay < 500) {
-                setTimeout(tick, delay);
+                rollingTimeoutRef.current = setTimeout(tick, delay);
             } else {
                 setIsRolling(false);
+                setRollingCandidate(null);
                 setSelectedReviewer(candidates[finalIndex]);
                 setLoading(false);
+                rollingTimeoutRef.current = null;
             }
         };
 
-        setTimeout(tick, delay);
-    };
-
-    const findCurrentUser = async () => {
-        if (!currentLogin) {
-            return;
-        }
-
-        const userUrl = `${GITHUB_URL}/users/${currentLogin}?per_page=100`;
-        const response = await fetch(userUrl, {
-            headers: {
-                Authorization: `Bearer ${TOKEN}`,
-            },
-        });
-
-        if (!response.ok) {
-            const error = handleApiResponse(response);
-            console.error(error.message);
-            return;
-        }
-
-        const userData = await response.json();
-        setCurrentUser(userData);
+        rollingTimeoutRef.current = setTimeout(tick, delay);
     };
 
     const finishLoading = () => {
@@ -101,6 +107,24 @@ const Search = ({ currentLogin, currentRepo, blacklist, excludeBots }) => {
         if (filteredReviewers.length > 1 && !isRolling && !loading) {
             startRollingAnimation(filteredReviewers);
         }
+    };
+
+    const findCurrentUser = async (signal) => {
+        if (!currentLogin) return null;
+
+        const userUrl = `${GITHUB_URL}/users/${currentLogin}`;
+        const response = await fetch(userUrl, {
+            headers: { Authorization: `Bearer ${TOKEN}` },
+            signal,
+        });
+
+        if (!response.ok) {
+            const error = handleApiResponse(response);
+            console.error(error.message);
+            return null;
+        }
+
+        return response.json();
     };
 
     const findReviewers = async () => {
@@ -120,6 +144,15 @@ const Search = ({ currentLogin, currentRepo, blacklist, excludeBots }) => {
             return;
         }
 
+        stopRollingAnimation();
+
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+
+        abortControllerRef.current = new AbortController();
+        const signal = abortControllerRef.current.signal;
+
         setLoading(true);
         setHasSearched(false);
         setFilteredReviewers([]);
@@ -127,28 +160,29 @@ const Search = ({ currentLogin, currentRepo, blacklist, excludeBots }) => {
         setIsRolling(false);
 
         try {
-            await findCurrentUser();
-
-            const reviewersUrl = `${GITHUB_URL}/repos/${currentRepo}/contributors`;
-            const response = await fetch(reviewersUrl, {
-                headers: {
-                    Authorization: `Bearer ${TOKEN}`,
-                },
+            const contributorsUrl = `${GITHUB_URL}/repos/${currentRepo}/contributors?per_page=100`;
+            const contributorsResponse = await fetch(contributorsUrl, {
+                headers: { Authorization: `Bearer ${TOKEN}` },
+                signal,
             });
 
-            if (!response.ok) {
-                if (response.status === 404) {
-                    setError(`Репозиторий не найден`);
-                } else {
-                    console.error(`API Error: ${response.status}`);
+            if (!contributorsResponse.ok) {
+                if (contributorsResponse.status === 404) {
+                    throw new Error('Репозиторий не найден');
                 }
-                finishLoading();
-                return;
+                throw handleApiResponse(contributorsResponse);
             }
 
-            const reviewersData = await response.json();
-            const filteredData = filterReviewers(reviewersData, excludeBots);
+            const [userData, reviewersData] = await Promise.all([
+                findCurrentUser(signal),
+                contributorsResponse.json(),
+            ]);
 
+            if (userData) {
+                setCurrentUser(userData);
+            }
+
+            const filteredData = filterReviewers(reviewersData, excludeBots);
             setFilteredReviewers(filteredData);
 
             if (filteredData.length === 0) {
@@ -160,9 +194,16 @@ const Search = ({ currentLogin, currentRepo, blacklist, excludeBots }) => {
             } else {
                 startRollingAnimation(filteredData);
             }
-        } catch (error) {
-            console.log(error);
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                console.log('Запрос отменен');
+                return;
+            }
+            console.error('Ошибка при загрузке:', err);
+            setError(err.message || 'Произошла ошибка при загрузке данных');
             finishLoading();
+        } finally {
+            abortControllerRef.current = null;
         }
     };
 

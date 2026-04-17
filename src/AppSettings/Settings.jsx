@@ -46,16 +46,7 @@ const Settings = ({
     };
 
     useEffect(() => {
-        localStorage.setItem('settings_login', login);
-    }, [login]);
-
-    useEffect(() => {
-        localStorage.setItem('settings_repo', repo);
-    }, [repo]);
-
-    useEffect(() => {
         setBlacklistInput(blacklist.join(', '));
-        localStorage.setItem('settings_blacklist', JSON.stringify(blacklist));
     }, [blacklist]);
 
     return (
