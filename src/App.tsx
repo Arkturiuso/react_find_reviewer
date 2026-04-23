@@ -17,7 +17,7 @@ const App = () => {
   const initDone = useRef(false);
 
   useLayoutEffect(() => {
-    if (initDone.current) return;
+    if (initDone.current) {return;}
     initDone.current = true;
 
     try {

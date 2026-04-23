@@ -17,9 +17,7 @@ import styles from './SearchStyles.module.less';
 const GITHUB_URL = 'https://api.github.com';
 const TOKEN = import.meta.env.VITE_GITHUB_TOKEN;
 
-const removeBots = (reviewers: GitHubUser[]): GitHubUser[] => {
-  return reviewers.filter((reviewer) => !reviewer.login.endsWith('[bot]'));
-};
+const removeBots = (reviewers: GitHubUser[]): GitHubUser[] => reviewers.filter((reviewer) => !reviewer.login.endsWith('[bot]'));
 
 interface SearchProps {
   currentLogin: string;
@@ -45,16 +43,14 @@ const Search = ({ currentLogin, currentRepo, blacklist, excludeBots }: SearchPro
   const rollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    return () => {
+  useEffect(() => () => {
       if (rollingTimeoutRef.current) {
         clearTimeout(rollingTimeoutRef.current);
       }
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
-    };
-  }, []);
+    }, []);
 
   const filterReviewers = (reviewers: GitHubUser[], excludeBotsFlag: boolean): GitHubUser[] => {
     if (!reviewers || reviewers.length === 0) {
@@ -118,7 +114,7 @@ const Search = ({ currentLogin, currentRepo, blacklist, excludeBots }: SearchPro
   };
 
   const findCurrentUser = async (signal: AbortSignal): Promise<GitHubUser | null> => {
-    if (!currentLogin) return null;
+    if (!currentLogin) {return null;}
     const userUrl = `${GITHUB_URL}/users/${currentLogin}`;
     const response = await fetch(userUrl, {
       headers: { Authorization: `Bearer ${TOKEN}` },

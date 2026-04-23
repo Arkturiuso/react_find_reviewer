@@ -14,12 +14,10 @@ interface SettingsProps {
   onReset: () => void;
 }
 
-const splitBlacklistLogins = (blacklist: string): string[] => {
-  return blacklist
+const splitBlacklistLogins = (blacklist: string): string[] => blacklist
     .split(',')
     .map((login) => login.trim())
     .filter((login) => login.length > 0);
-};
 
 const Settings = ({
   setExcludeBots,
@@ -35,16 +33,15 @@ const Settings = ({
   const [settingsVisibility, setSettingsVisibility] = useState<boolean>(false);
   const [blacklistInput, setBlacklistInput] = useState<string>(() => blacklist.join(', '));
 
-  const isValidRepo = (): boolean => {
-    return (
+  const isValidRepo = (): boolean => (
       repo.length > 0 &&
       repo.includes('/') &&
       !repo.startsWith('/') &&
       !repo.endsWith('/')
     );
-  };
 
   useEffect(() => {
+     // eslint-disable-next-line react-hooks/set-state-in-effect
     setBlacklistInput(blacklist.join(', '));
   }, [blacklist]);
 
